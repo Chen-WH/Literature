@@ -74,11 +74,13 @@ xlabel("t(s)");ylabel("power(N·m/s)");
 legend("1", "2");grid on;
 ax = gca; ax.FontName = 'Times New Roman';
 set(gca, 'FontSize',13);
-%% distribution
+%% Estimation of the Maximum Angular Velocity
 x = -b/2:0.01:b/2; xList = length(x);
-y = -h/2:0.01:h/2 - H; yList = length(y);
+y = -h/2 - H:0.01:h/2 - H; yList = length(y);
 [X, Y] = meshgrid(x, y);
 J = cell(xList, yList);
+sigma_J = zeros(xList, yList);
+sigma_G = zeros(xList, yList);
 for row = 1:xList
     for col = 1:yList
         [theta1, theta2] = ikine2([x(row); y(col)]);
@@ -86,6 +88,22 @@ for row = 1:xList
         u2 = [cos(theta1(2, 1)); sin(theta1(2, 1))];
         w1 = [cos(theta2(1, 1)); sin(theta2(1, 1))];
         w2 = [cos(theta2(2, 1)); sin(theta2(2, 1))];
-        J(row, col) = [w1(:, num)/(u1(:, num).'*Q*w1(:, num)), w2(:, num)/(u2(:, num).'*Q*w2(:, num))].'/l1;
+        J{row, col} = [w1/(u1.'*Q*w1), w2/(u2.'*Q*w2)].'/l1;
+        G = 0.129*J{row, col} + m*inv(J{row, col}).';
+        sigma_J(row, col) = max(max( sqrt(J{row, col}*J{row, col}.') ));
+        sigma_G(row, col) = max(max( sqrt(G*G.') ));
+%         sigma_G(row, col) = IA + m*mean(diag(inv(J{row, col}).'*inv(J{row, col})));
     end
 end
+figure(5);
+surf(X, Y, sigma_J.');
+title("Distribution of the angular velocity");
+xlabel("x(m)");ylabel("y(m)");zlabel("\sigma_J(rad/m)");
+ax = gca; ax.FontName = 'Times New Roman';
+set(gca, 'FontSize',13);
+figure(6);
+surf(X, Y, sigma_G.');
+title("Distribution of the torque");
+xlabel("x(m)");ylabel("y(m)");zlabel("\sigma_G(N·s^2)");
+ax = gca; ax.FontName = 'Times New Roman';
+set(gca, 'FontSize',13);
